@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   tools {
-    nodejs 'NodeJS 18'   
+    nodejs 'NodeJS 18'
   }
 
   environment {
@@ -11,16 +11,15 @@ pipeline {
   }
 
   stages {
-
     stage('Checkout Code') {
       steps {
-        git 'https://github.com/HannanDevops28/nodejs_microservices.git' 
+        git branch: 'dev', url: 'https://github.com/HannanDevops28/nodejs_microservices.git'
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        sh 'npm install'
+        sh 'cd microservices-project/user-service && npm install'
       }
     }
 
@@ -32,19 +31,21 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        sh 'docker build -t $IMAGE_NAME .'
+        sh 'cd microservices-project/user-service && docker build -t $IMAGE_NAME .'
       }
     }
 
     stage('Push to DockerHub') {
       steps {
         withDockerRegistry([credentialsId: 'dockerhub-credentials-id', url: '']) {
-          sh 'docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest'
-          sh 'docker push $DOCKERHUB_REPO:latest'
+          sh '''
+            cd microservices-project/user-service
+            docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest
+            docker push $DOCKERHUB_REPO:latest
+          '''
         }
       }
     }
-
   }
 
   post {
