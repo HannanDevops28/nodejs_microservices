@@ -2,19 +2,19 @@ pipeline {
   agent any
 
   tools {
-    nodejs 'NodeJS 18'   // name must match Jenkins global config
+    nodejs 'NodeJS 18'   
   }
 
   environment {
     IMAGE_NAME = "user-service"
-    DOCKERHUB_REPO = "your-dockerhub-username/user-service"
+    DOCKERHUB_REPO = "hannanahmed/user-service"
   }
 
   stages {
 
     stage('Checkout Code') {
       steps {
-        git 'https://github.com/yourusername/user-service.git' // or use local path temporarily
+        git 'https://github.com/HannanDevops28/nodejs_microservices.git' 
       }
     }
 
@@ -38,7 +38,7 @@ pipeline {
 
     stage('Push to DockerHub') {
       steps {
-        withDockerRegistry([credentialsId: 'dockerhub-creds', url: '']) {
+        withDockerRegistry([credentialsId: 'dockerhub-credentials-id', url: '']) {
           sh 'docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest'
           sh 'docker push $DOCKERHUB_REPO:latest'
         }
