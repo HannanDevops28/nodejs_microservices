@@ -1,0 +1,58 @@
+pipeline {
+  agent any
+
+  tools {
+    nodejs 'NodeJS 18'   // name must match Jenkins global config
+  }
+
+  environment {
+    IMAGE_NAME = "user-service"
+    DOCKERHUB_REPO = "your-dockerhub-username/user-service"
+  }
+
+  stages {
+
+    stage('Checkout Code') {
+      steps {
+        git 'https://github.com/yourusername/user-service.git' // or use local path temporarily
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
+    }
+
+    stage('Test') {
+      steps {
+        echo "✅ Test skipped (add later)"
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t $IMAGE_NAME .'
+      }
+    }
+
+    stage('Push to DockerHub') {
+      steps {
+        withDockerRegistry([credentialsId: 'dockerhub-creds', url: '']) {
+          sh 'docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest'
+          sh 'docker push $DOCKERHUB_REPO:latest'
+        }
+      }
+    }
+
+  }
+
+  post {
+    success {
+      echo "🎉 Build and Push successful!"
+    }
+    failure {
+      echo "❌ Build failed"
+    }
+  }
+}
