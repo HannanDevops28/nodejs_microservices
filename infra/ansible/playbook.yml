@@ -1,40 +1,52 @@
 - hosts: ec2
-  become: yes
+  become: true
   vars:
     ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"
     ecr_registry: "781860574009.dkr.ecr.ap-south-1.amazonaws.com"
     image_name: "user-service"
     region: "ap-south-1"
+    container_port: 3000
+    host_port: 3000
 
   tasks:
-    - name: Install AWS CLI
-      yum:
-        name: awscli
+
+    - name: Install required packages (AWS CLI & Docker)
+      package:
+        name:
+          - awscli
+          - docker
         state: present
 
-    - name: Install Docker
-      yum: 
-        name: docker
-        state: present
-
-    - name: Start Docker service
-      service: 
+    - name: Ensure Docker service is started and enabled
+      service:
         name: docker
         state: started
-        enabled: yes
+        enabled: true
 
     - name: Login to AWS ECR
       shell: >
         aws ecr get-login-password --region {{ region }} |
         docker login --username AWS --password-stdin {{ ecr_registry }}
       register: ecr_login
+      changed_when: false
       failed_when: ecr_login.rc != 0
 
     - name: Pull Docker image from ECR
       shell: docker pull {{ ecr_repo_url }}:latest
+      register: docker_pull
+      changed_when: "'Downloaded newer image' in docker_pull.stdout"
 
-    - name: Run Docker container
-      shell: |
-        docker stop {{ image_name }} || true
-        docker rm {{ image_name }} || true
-        docker run -d -p 3000:3000 --name {{ image_name }} {{ ecr_repo_url }}:latest
+    - name: Stop running container if exists
+      shell: docker stop {{ image_name }}
+      ignore_errors: true
+
+    - name: Remove stopped container if exists
+      shell: docker rm {{ image_name }}
+      ignore_errors: true
+
+    - name: Run Docker container from pulled image
+      shell: >
+        docker run -d
+        -p {{ host_port }}:{{ container_port }}
+        --name {{ image_name }}
+        {{ ecr_repo_url }}:latest
