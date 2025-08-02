@@ -21,10 +21,11 @@
         state: started
         enabled: yes
 
-    - name: Login to ECR
-      shell: aws ecr get-login-password --region ap-south-1
-      register: login_result
-      failed_when: "'Login Succeeded' not in login_result.stdout"
+    - name: Login to AWS ECR
+      shell: |
+        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin {{ ecr_repo_url }}
+        register: ecr_login
+        failed_when: ecr_login.rc != 0
 
     - name: Pull Docker image
       shell: docker pull {{ ecr_repo_url }}:latest
