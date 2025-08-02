@@ -1,8 +1,9 @@
 - hosts: ec2
   become: yes
   vars:
-    ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"   # e.g., 123456789.dkr.ecr.ap-south-1.amazonaws.com/user-service
+    ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"
     image_name: "user-service"
+    region: "ap-south-1"
   tasks:
     - name: Install AWS CLI
       yum:
@@ -22,7 +23,9 @@
 
     - name: Login to ECR
       shell: |
-        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin {{ ecr_repo_url }}
+        aws ecr get-login-password --region {{ region }} | docker login --username AWS --password-stdin {{ ecr_repo_url }}
+      register: login_result
+      failed_when: "'Login Succeeded' not in login_result.stdout"
 
     - name: Pull Docker image
       shell: docker pull {{ ecr_repo_url }}:latest
