@@ -38,18 +38,25 @@ pipeline {
 }
 stage('Terraform Apply') {
   environment {
-    TF_VAR_public_key = credentials('jenkins-public-key') // Should contain actual SSH public key text
+    AWS_DEFAULT_REGION = 'ap-south-1'  // adjust as needed
   }
   steps {
-    withAWS(credentials: 'aws-ecr-creds', region: 'us-east-1') {
-      sh '''
-        cd infra/terraform
-        terraform init
-        terraform apply -auto-approve
-      '''
+    withAWS(credentials: 'aws-ecr-creds') {
+      withCredentials([string(credentialsId: 'ssh-public-key', variable: 'PUBLIC_KEY')]) {
+        dir('infra/terraform') {
+          sh '''
+            echo "Initializing Terraform"
+            terraform init
+
+            echo "Applying Terraform with SSH public key"
+            terraform apply -auto-approve -var="public_key=$PUBLIC_KEY"
+          '''
+        }
+      }
     }
   }
 }
+
 
 
 
