@@ -48,11 +48,13 @@ pipeline {
           -i infra/ansible/inventory.ini \
           infra/ansible/playbook.yml \
           --extra-vars "ecr_repo_url=$ECR_URL image_name=$IMAGE_NAME instance_ip=$INSTANCE_IP" \
-          --private-key $SSH_KEY
+          --private-key $SSH_KEY \
+          --ssh-extra-args "-o StrictHostKeyChecking=no"
       '''
     }
   }
 }
+
 
   }
 }
