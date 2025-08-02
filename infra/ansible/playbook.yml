@@ -2,8 +2,10 @@
   become: yes
   vars:
     ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"
+    ecr_registry: "781860574009.dkr.ecr.ap-south-1.amazonaws.com"
     image_name: "user-service"
     region: "ap-south-1"
+
   tasks:
     - name: Install AWS CLI
       yum:
@@ -15,19 +17,20 @@
         name: docker
         state: present
 
-    - name: Start Docker
+    - name: Start Docker service
       service: 
         name: docker
         state: started
         enabled: yes
 
     - name: Login to AWS ECR
-      shell: |
-        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin {{ ecr_repo_url }}
-        register: ecr_login
-        failed_when: ecr_login.rc != 0
+      shell: >
+        aws ecr get-login-password --region {{ region }} |
+        docker login --username AWS --password-stdin {{ ecr_registry }}
+      register: ecr_login
+      failed_when: ecr_login.rc != 0
 
-    - name: Pull Docker image
+    - name: Pull Docker image from ECR
       shell: docker pull {{ ecr_repo_url }}:latest
 
     - name: Run Docker container
