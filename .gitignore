@@ -1,0 +1,60 @@
+# === Node.js / common language dependencies ===
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Python (if using for Ansible scripts or utility) ===
+__pycache__/
+*.py[cod]
+*.pyo
+
+# === Terraform ===
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/*.tfvars
+infra/terraform/.terraform.lock.hcl
+
+# === Ansible ===
+infra/ansible/*.retry
+infra/ansible/inventory.ini
+infra/ansible/hosts.ini
+
+# === Docker ===
+*.tar
+*.img
+.docker/
+
+# === Jenkins ===
+jenkins_home/
+jenkins-docker/.jenkins/
+
+# === System Files ===
+.DS_Store
+Thumbs.db
+
+# === Environment Files ===
+.env
+.env.*
+
+# === Logs ===
+*.log
+logs/
+*.out
+
+# === IDE/Editor ===
+.vscode/
+.idea/
+*.swp
+
+# === OS or misc ===
+*.bak
+*.tmp
+
+# === Git ===
+.git/
+*.orig

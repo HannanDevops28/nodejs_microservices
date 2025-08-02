@@ -1,0 +1,34 @@
+- hosts: ec2
+  become: yes
+  vars:
+    ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"   # e.g., 123456789.dkr.ecr.ap-south-1.amazonaws.com/user-service
+    image_name: "user-service"
+  tasks:
+    - name: Install AWS CLI
+      yum:
+        name: awscli
+        state: present
+
+    - name: Install Docker
+      yum: 
+        name: docker
+        state: present
+
+    - name: Start Docker
+      service: 
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Login to ECR
+      shell: |
+        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin {{ ecr_repo_url }}
+
+    - name: Pull Docker image
+      shell: docker pull {{ ecr_repo_url }}:latest
+
+    - name: Run Docker container
+      shell: |
+        docker stop {{ image_name }} || true
+        docker rm {{ image_name }} || true
+        docker run -d -p 3000:3000 --name {{ image_name }} {{ ecr_repo_url }}:latest
