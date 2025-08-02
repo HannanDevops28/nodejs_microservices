@@ -22,7 +22,7 @@
         enabled: yes
 
     - name: Login to ECR
-      shell: aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin {{ ecr_repo_url | regex_replace('^(.*?)/.*$', '\\1') }}
+      shell: aws ecr get-login-password --region ap-south-1
       register: login_result
       failed_when: "'Login Succeeded' not in login_result.stdout"
 
