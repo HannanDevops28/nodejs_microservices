@@ -26,10 +26,8 @@
           - curl
         state: present
 
-    - name: Enable EPEL (for Certbot)
-      amazon.aws.amazon_linux_extras:
-        name: epel
-        state: enabled
+    - name: Enable EPEL using amazon-linux-extras (Amazon Linux 2)
+      shell: amazon-linux-extras enable epel -y
 
     - name: Install Certbot
       yum:
