@@ -39,13 +39,21 @@ pipeline {
 
 
     stage('Deploy with Ansible') {
-      steps {
-        sh '''
-          INSTANCE_IP=$(terraform -chdir=infra/terraform output -raw instance_ip)
-          ansible-playbook -i infra/ansible/inventory.ini infra/ansible/playbook.yml --extra-vars "ecr_repo_url=$ECR_URL image_name=$IMAGE_NAME instance_ip=$INSTANCE_IP"
-        '''
-      }
+  steps {
+    withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+      sh '''
+        INSTANCE_IP=$(terraform -chdir=infra/terraform output -raw instance_ip)
+
+        ansible-playbook \
+          -i infra/ansible/inventory.ini \
+          infra/ansible/playbook.yml \
+          --extra-vars "ecr_repo_url=$ECR_URL image_name=$IMAGE_NAME instance_ip=$INSTANCE_IP" \
+          --private-key $SSH_KEY
+      '''
     }
+  }
+}
+
   }
 }
 
