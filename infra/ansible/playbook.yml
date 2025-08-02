@@ -3,21 +3,21 @@
   vars:
     region: "{{ region }}"
     image_name: "{{ image_name }}"
-    ecr_repo_url: "{{ ecr_repo_url }}"
+    ecr_repo_url: "{{ ecr_repo_url }}"  # e.g., 781860574009.dkr.ecr.ap-south-1.amazonaws.com/my-app
     ecr_registry: "{{ account_id }}.dkr.ecr.{{ region }}.amazonaws.com"
     container_port: 3000
     host_port: 3000
 
   tasks:
 
-    - name: Install required packages (AWS CLI & Docker)
+    - name: Install AWS CLI and Docker
       package:
         name:
           - awscli
           - docker
         state: present
 
-    - name: Ensure Docker service is started and enabled
+    - name: Start and enable Docker service
       service:
         name: docker
         state: started
@@ -29,22 +29,22 @@
         docker login --username AWS --password-stdin {{ ecr_registry }}
       register: ecr_login
       changed_when: false
-      failed_when: ecr_login.rc != 0
+      failed_when: "'Login Succeeded' not in ecr_login.stdout"
 
     - name: Pull Docker image from ECR
       shell: docker pull {{ ecr_repo_url }}:latest
       register: docker_pull
       changed_when: "'Downloaded newer image' in docker_pull.stdout"
 
-    - name: Stop running container if exists
+    - name: Stop existing container if running
       shell: docker stop {{ image_name }}
       ignore_errors: true
 
-    - name: Remove stopped container if exists
+    - name: Remove existing container if stopped
       shell: docker rm {{ image_name }}
       ignore_errors: true
 
-    - name: Run Docker container from pulled image
+    - name: Run Docker container
       shell: >
         docker run -d
         -p {{ host_port }}:{{ container_port }}

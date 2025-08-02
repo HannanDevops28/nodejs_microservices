@@ -50,7 +50,7 @@ pipeline {
       steps {
         withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
           sh '''
-            INSTANCE_IP=13.201.89.235
+            INSTANCE_IP=13.204.87.21
 
             echo "[ec2]" > infra/ansible/inventory.ini
             echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
