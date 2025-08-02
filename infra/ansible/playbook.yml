@@ -12,12 +12,12 @@
     email: ahmedhannan846@gmail.com
 
   tasks:
-    - name: Update yum packages
+    - name: Update all yum packages
       yum:
         name: "*"
         state: latest
 
-    - name: Enable nginx from Amazon Linux Extras
+    - name: Enable NGINX via Amazon Linux Extras
       shell: amazon-linux-extras enable nginx1
       args:
         creates: /etc/yum.repos.d/amzn2extra-nginx1.repo
@@ -25,44 +25,15 @@
     - name: Install required packages
       yum:
         name:
+          - epel-release
           - awscli
           - docker
           - nginx
           - curl
-          - snapd
+          - certbot
+          - python3-certbot-nginx
         state: present
         update_cache: yes
-
-    - name: Start and enable snapd
-      systemd:
-        name: snapd
-        state: started
-        enabled: true
-
-    - name: Ensure snap path is linked
-      file:
-        src: /var/lib/snapd/snap
-        dest: /snap
-        state: link
-
-    - name: Install core snap
-      command: snap install core
-      args:
-        creates: /snap/core
-
-    - name: Refresh snap core
-      command: snap refresh core
-
-    - name: Install Certbot via snap
-      command: snap install --classic certbot
-      args:
-        creates: /snap/bin/certbot
-
-    - name: Link certbot to path
-      file:
-        src: /snap/bin/certbot
-        dest: /usr/bin/certbot
-        state: link
 
     - name: Enable and start Docker
       service:
@@ -70,7 +41,7 @@
         state: started
         enabled: true
 
-    - name: Enable and start Nginx
+    - name: Enable and start NGINX
       service:
         name: nginx
         state: started
@@ -108,7 +79,7 @@
       args:
         creates: "/etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem"
 
-    - name: Configure Nginx for HTTPS reverse proxy
+    - name: Configure NGINX for HTTPS reverse proxy
       copy:
         dest: /etc/nginx/nginx.conf
         content: |
@@ -157,7 +128,7 @@
               }
           }
 
-    - name: Reload Nginx
+    - name: Reload NGINX
       service:
         name: nginx
         state: restarted
