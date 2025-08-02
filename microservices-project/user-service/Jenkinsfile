@@ -38,17 +38,16 @@ pipeline {
 }
 stage('Terraform Apply') {
   environment {
-    PUBLIC_KEY = credentials('jenkins-public-key') // Secret Text
+    TF_VAR_public_key = credentials('jenkins-public-key') // Should contain actual SSH public key text
   }
   steps {
-    sh '''
-      cd infra/terraform
-
-      echo 'public_key = "${PUBLIC_KEY}"' > terraform.auto.tfvars
-
-      terraform init
-      terraform apply -auto-approve
-    '''
+    withAWS(credentials: 'aws-ecr-creds', region: 'us-east-1') {
+      sh '''
+        cd infra/terraform
+        terraform init
+        terraform apply -auto-approve
+      '''
+    }
   }
 }
 
