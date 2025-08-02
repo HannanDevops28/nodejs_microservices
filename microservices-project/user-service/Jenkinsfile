@@ -38,13 +38,17 @@ pipeline {
 }
 stage('Terraform Apply') {
   steps {
-    sh '''
-      cd infra/terraform
-      terraform init
-      terraform apply -auto-approve -var-file="terraform.tfvars"
-    '''
+    withCredentials([string(credentialsId: 'jenkins-public-key', variable: 'PUBLIC_KEY')]) {
+      writeFile file: 'infra/terraform/jenkins-devops-key.pub', text: env.PUBLIC_KEY
+      sh '''
+        cd infra/terraform
+        terraform init
+        terraform apply -auto-approve -var="public_key=${PUBLIC_KEY}"
+      '''
+    }
   }
 }
+
 
 
 stage('Deploy with Ansible') {

@@ -8,3 +8,7 @@ variable "public_key_path" {
   type        = string
   description = "Local path to your public key"
 }
+variable "public_key" {
+  description = "Public key for EC2 access"
+  type        = string
+}
