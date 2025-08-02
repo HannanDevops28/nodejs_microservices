@@ -36,26 +36,6 @@ pipeline {
     }
   }
 }
-stage('Terraform Apply') {
-  environment {
-    AWS_DEFAULT_REGION = 'ap-south-1'
-  }
-  steps {
-    withAWS(credentials: 'aws-ecr-creds') {
-      withCredentials([string(credentialsId: 'jenkins-public-key', variable: 'PUBLIC_KEY')]) {
-        dir('infra/terraform') {
-          sh '''
-            terraform init
-            terraform apply -auto-approve -var="public_key=$PUBLIC_KEY"
-          '''
-        }
-      }
-    }
-  }
-}
-
-
-
 
 
 stage('Deploy with Ansible') {
