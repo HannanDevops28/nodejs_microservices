@@ -37,17 +37,21 @@ pipeline {
   }
 }
 stage('Terraform Apply') {
+  environment {
+    PUBLIC_KEY = credentials('jenkins-public-key') // Secret Text
+  }
   steps {
-    withCredentials([string(credentialsId: 'jenkins-public-key', variable: 'PUBLIC_KEY')]) {
-      writeFile file: 'infra/terraform/jenkins-devops-key.pub', text: env.PUBLIC_KEY
-      sh '''
-        cd infra/terraform
-        terraform init
-        terraform apply -auto-approve -var="public_key=${PUBLIC_KEY}"
-      '''
-    }
+    sh '''
+      cd infra/terraform
+
+      echo 'public_key = "${PUBLIC_KEY}"' > terraform.auto.tfvars
+
+      terraform init
+      terraform apply -auto-approve
+    '''
   }
 }
+
 
 
 
