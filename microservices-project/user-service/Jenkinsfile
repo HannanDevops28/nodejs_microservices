@@ -41,10 +41,11 @@ stage('Terraform Apply') {
     sh '''
       cd infra/terraform
       terraform init
-      terraform apply -auto-approve
+      terraform apply -auto-approve -var-file="terraform.tfvars"
     '''
   }
 }
+
 
 stage('Deploy with Ansible') {
   steps {
