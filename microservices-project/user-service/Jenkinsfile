@@ -38,11 +38,14 @@ pipeline {
 }
 
 
-    stage('Deploy with Ansible') {
+ stage('Deploy with Ansible') {
   steps {
     withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
       sh '''
         INSTANCE_IP=$(terraform -chdir=infra/terraform output -raw instance_ip)
+
+        echo "[ec2]" > infra/ansible/inventory.ini
+        echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
 
         ansible-playbook \
           -i infra/ansible/inventory.ini \
@@ -54,6 +57,7 @@ pipeline {
     }
   }
 }
+
 
 
   }
