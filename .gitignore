@@ -21,8 +21,8 @@ infra/terraform/.terraform.lock.hcl
 
 # === Ansible ===
 infra/ansible/*.retry
-infra/ansible/inventory.ini
-infra/ansible/hosts.ini
+# infra/ansible/inventory.ini
+# infra/ansible/hosts.ini
 
 # === Docker ===
 *.tar
