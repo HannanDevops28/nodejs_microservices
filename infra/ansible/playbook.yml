@@ -1,10 +1,10 @@
 - hosts: ec2
   become: true
   vars:
-    ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"
-    ecr_registry: "781860574009.dkr.ecr.ap-south-1.amazonaws.com"
-    image_name: "user-service"
-    region: "ap-south-1"
+    region: "{{ region }}"
+    image_name: "{{ image_name }}"
+    ecr_repo_url: "{{ ecr_repo_url }}"
+    ecr_registry: "{{ account_id }}.dkr.ecr.{{ region }}.amazonaws.com"
     container_port: 3000
     host_port: 3000
 

@@ -8,66 +8,63 @@ pipeline {
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         git branch: 'dev', url: 'https://github.com/HannanDevops28/nodejs_microservices.git'
       }
     }
+
     stage('Install') {
       steps {
         sh 'cd microservices-project/user-service && npm install'
       }
     }
-    stage('Build') {
+
+    stage('Build Docker Image') {
       steps {
         sh 'cd microservices-project/user-service && docker build -t $IMAGE_NAME .'
       }
     }
-stage('ECR Login & Push') {
-  steps {
-    withAWS(credentials: 'aws-ecr-creds', region: "${AWS_REGION}") {
-      script {
-        def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-        def repoUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.IMAGE_NAME}"
 
-        env.ECR_REPO = repoUrl // ✅ Export to next stages
+    stage('ECR Login & Push') {
+      steps {
+        withAWS(credentials: 'aws-ecr-creds', region: "${AWS_REGION}") {
+          script {
+            def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
+            def repoUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.IMAGE_NAME}"
+            env.ECR_REPO = repoUrl
+            env.ACCOUNT_ID = accountId
 
-        sh """
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $accountId.dkr.ecr.$AWS_REGION.amazonaws.com
-          docker tag $IMAGE_NAME:latest $ECR_REPO:latest
-          docker push $ECR_REPO:latest
-        """
+            sh """
+              aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $repoUrl
+              docker tag $IMAGE_NAME:latest $repoUrl:latest
+              docker push $repoUrl:latest
+            """
+          }
+        }
       }
     }
-  }
-}
 
+    stage('Deploy with Ansible') {
+      steps {
+        withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+          sh '''
+            INSTANCE_IP=13.201.89.235
 
-stage('Deploy with Ansible') {
-  steps {
-    withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-      sh '''
-        #!/bin/bash
-        INSTANCE_IP=35.154.100.134
+            echo "[ec2]" > infra/ansible/inventory.ini
+            echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
 
-        echo "[ec2]" > infra/ansible/inventory.ini
-        echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
-
-        ansible-playbook \
-          -i infra/ansible/inventory.ini \
-          infra/ansible/playbook.yml \
-          --extra-vars "ecr_repo_url=$ECR_REPO image_name=$IMAGE_NAME region=$AWS_REGION" \
-          --private-key $SSH_KEY \
-          --ssh-extra-args "-o StrictHostKeyChecking=no"
-      '''
+            ansible-playbook \
+              -i infra/ansible/inventory.ini \
+              infra/ansible/playbook.yml \
+              --extra-vars "ecr_repo_url=$ECR_REPO image_name=$IMAGE_NAME region=$AWS_REGION account_id=$ACCOUNT_ID" \
+              --private-key $SSH_KEY \
+              --ssh-extra-args "-o StrictHostKeyChecking=no"
+          '''
+        }
+      }
     }
-  }
-}
-
-
-
 
   }
 }
-
-
