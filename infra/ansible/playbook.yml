@@ -1,27 +1,149 @@
+# - hosts: ec2
+#   become: yes
+#   vars:
+#     ecr_repo_url: "781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service"
+#     image_name: "user-service"
+#     region: "ap-south-1"
+#   tasks:
+#     - name: Install AWS CLI
+#       yum:
+#         name: awscli
+#         state: present
+
+#     - name: Install Docker
+#       yum: 
+#         name: docker
+#         state: present
+
+#     - name: Start Docker
+#       service: 
+#         name: docker
+#         state: started
+#         enabled: yes
+
+#     - name: Login to ECR
+#       shell: aws ecr get-login-password --region ap-south-1
+#       register: login_result
+#       failed_when: "'Login Succeeded' not in login_result.stdout"
+
+#     - name: Pull Docker image
+#       shell: docker pull {{ ecr_repo_url }}:latest
+
+#     - name: Run Docker container
+#       shell: |
+#         docker stop {{ image_name }} || true
+#         docker rm {{ image_name }} || true
+#         docker run -d -p 3000:3000 --name {{ image_name }} {{ ecr_repo_url }}:latest
+
+
 - hosts: ec2
   become: true
   vars:
-    region: "{{ region }}"
-    image_name: "{{ image_name }}"
-    ecr_repo_url: "{{ ecr_repo_url }}"  # e.g., 781860574009.dkr.ecr.ap-south-1.amazonaws.com/my-app
-    ecr_registry: "{{ account_id }}.dkr.ecr.{{ region }}.amazonaws.com"
+    region: ap-south-1
+    image_name: user-service
+    ecr_repo_url: 781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service
+    ecr_registry: 781860574009.dkr.ecr.ap-south-1.amazonaws.com
     container_port: 3000
     host_port: 3000
+    duckdns_token: 7fdb5248-c8a2-4448-97e4-346dcd7a9077
+    duckdns_domain: zillas   # just the subdomain, not full domain
+    email: ahmedhannan846@gmail.com
 
   tasks:
+    - name: Update APT cache
+      apt:
+        update_cache: yes
 
     - name: Install AWS CLI and Docker
-      package:
+      apt:
         name:
           - awscli
-          - docker
+          - docker.io
         state: present
 
-    - name: Start and enable Docker service
+    - name: Install Nginx and Certbot
+      apt:
+        name:
+          - nginx
+          - certbot
+          - python3-certbot-nginx
+          - curl
+        state: present
+
+    - name: Enable and start Docker service
       service:
         name: docker
         state: started
         enabled: true
+
+    - name: Enable and start Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create DuckDNS DNS auth script
+      copy:
+        dest: /opt/duckdns_auth.sh
+        mode: '0700'
+        content: |
+          #!/bin/bash
+          curl -k "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&txt=$CERTBOT_VALIDATION"
+          sleep 10
+
+    - name: Create DuckDNS DNS cleanup script
+      copy:
+        dest: /opt/duckdns_cleanup.sh
+        mode: '0700'
+        content: |
+          #!/bin/bash
+          curl -k "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&txt="
+          sleep 10
+
+    - name: Obtain SSL certificate via DNS challenge
+      shell: >
+        certbot certonly
+        --manual
+        --preferred-challenges dns
+        --manual-auth-hook /opt/duckdns_auth.sh
+        --manual-cleanup-hook /opt/duckdns_cleanup.sh
+        --email {{ email }}
+        --agree-tos
+        --no-eff-email
+        -d {{ duckdns_domain }}.duckdns.org
+      args:
+        creates: "/etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem"
+
+    - name: Configure Nginx as HTTPS reverse proxy
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          server {
+              listen 80;
+              server_name {{ duckdns_domain }}.duckdns.org;
+              return 301 https://$host$request_uri;
+          }
+
+          server {
+              listen 443 ssl;
+              server_name {{ duckdns_domain }}.duckdns.org;
+
+              ssl_certificate /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/privkey.pem;
+
+              location / {
+                  proxy_pass http://localhost:{{ container_port }};
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
 
     - name: Login to AWS ECR
       shell: >
@@ -36,11 +158,11 @@
       register: docker_pull
       changed_when: "'Downloaded newer image' in docker_pull.stdout"
 
-    - name: Stop existing container if running
+    - name: Stop running Docker container (if exists)
       shell: docker stop {{ image_name }}
       ignore_errors: true
 
-    - name: Remove existing container if stopped
+    - name: Remove existing container (if exists)
       shell: docker rm {{ image_name }}
       ignore_errors: true
 
