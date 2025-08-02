@@ -50,8 +50,11 @@ stage('Deploy with Ansible') {
   steps {
     withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-ssh-key', keyFileVariable: 'SSH_KEY')]) {
       sh '''
-        INSTANCE_IP=13.234.67.68
-        source ecr_env.sh
+        #!/bin/bash
+        INSTANCE_IP=35.154.100.134
+
+        # Load exported vars from previous stage
+        . ecr_env.sh
 
         echo "[ec2]" > infra/ansible/inventory.ini
         echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
@@ -66,6 +69,7 @@ stage('Deploy with Ansible') {
     }
   }
 }
+
 
 
 
