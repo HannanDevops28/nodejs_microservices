@@ -53,7 +53,7 @@ pipeline {
             INSTANCE_IP=15.206.128.213
 
             echo "[ec2]" > infra/ansible/inventory.ini
-            echo "$INSTANCE_IP ansible_user=ec2-user" >> infra/ansible/inventory.ini
+            echo "$INSTANCE_IP ansible_user=ubuntu " >> infra/ansible/inventory.ini
             ansible-galaxy collection install amazon.aws --force
             ansible-playbook \
               -i infra/ansible/inventory.ini \
