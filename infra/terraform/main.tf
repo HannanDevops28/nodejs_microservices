@@ -34,7 +34,7 @@ resource "aws_security_group" "ec2_sg" {
 }
 
 resource "aws_instance" "app" {
-  ami                         = "ami-05a4fc6eaa38ee23c"
+  ami                         = "ami-03f4878755434977f"
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.jenkins_key.key_name
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
