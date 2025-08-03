@@ -1,3 +1,183 @@
+# - hosts: ec2
+#   become: true
+#   vars:
+#     region: ap-south-1
+#     image_name: user-service
+#     ecr_repo_url: 781860574009.dkr.ecr.ap-south-1.amazonaws.com/user-service
+#     ecr_registry: 781860574009.dkr.ecr.ap-south-1.amazonaws.com
+#     container_port: 3000
+#     host_port: 3000
+#     duckdns_token: 7fdb5248-c8a2-4448-97e4-346dcd7a9077
+#     duckdns_domain: zillas
+#     email: ahmedhannan846@gmail.com
+
+#   tasks:
+#     - name: Update all packages
+#       yum:
+#         name: "*"
+#         state: latest
+
+#     - name: Enable amazon-linux-extras for nginx
+#       shell: |
+#         amazon-linux-extras enable nginx1
+#         yum clean metadata
+#         yum install -y nginx
+#       args:
+#         creates: /etc/yum.repos.d/amzn2extra-nginx1.repo
+
+#     - name: Install required system packages
+#       yum:
+#         name:
+#           - awscli
+#           - docker
+#           - curl
+#           - python3
+#           - python3-pip
+#         state: present
+#         update_cache: yes
+
+#     - name: Install Certbot via pip
+#       pip:
+#         name: certbot
+#         executable: pip3
+
+#     - name: Install certbot-nginx plugin via pip
+#       pip:
+#         name: certbot-nginx
+#         executable: pip3
+
+#     - name: Start and enable Docker
+#       service:
+#         name: docker
+#         state: started
+#         enabled: true
+
+#     - name: Add ec2-user to docker group
+#       user:
+#         name: ec2-user
+#         groups: docker
+#         append: yes
+
+#     - name: Start and enable NGINX
+#       service:
+#         name: nginx
+#         state: started
+#         enabled: true
+
+#     - name: Create DuckDNS DNS auth script
+#       copy:
+#         dest: /opt/duckdns_auth.sh
+#         mode: '0700'
+#         content: |
+#           #!/bin/bash
+#           curl -k "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&txt=$CERTBOT_VALIDATION"
+#           sleep 10
+
+#     - name: Create DuckDNS DNS cleanup script
+#       copy:
+#         dest: /opt/duckdns_cleanup.sh
+#         mode: '0700'
+#         content: |
+#           #!/bin/bash
+#           curl -k "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&txt="
+#           sleep 10
+
+#     - name: Obtain SSL certificate with Certbot
+#       shell: >
+#         certbot certonly
+#         --manual
+#         --preferred-challenges dns
+#         --manual-auth-hook /opt/duckdns_auth.sh
+#         --manual-cleanup-hook /opt/duckdns_cleanup.sh
+#         --email {{ email }}
+#         --agree-tos
+#         --no-eff-email
+#         -d {{ duckdns_domain }}.duckdns.org
+#       args:
+#         creates: "/etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem"
+
+#     - name: Configure NGINX for HTTPS reverse proxy
+#       copy:
+#         dest: /etc/nginx/nginx.conf
+#         content: |
+#           user nginx;
+#           worker_processes auto;
+#           error_log /var/log/nginx/error.log;
+#           pid /run/nginx.pid;
+
+#           events {
+#               worker_connections 1024;
+#           }
+
+#           http {
+#               include /etc/nginx/mime.types;
+#               default_type application/octet-stream;
+
+#               log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+#                               '$status $body_bytes_sent "$http_referer" '
+#                               '"$http_user_agent" "$http_x_forwarded_for"';
+
+#               access_log /var/log/nginx/access.log main;
+
+#               sendfile on;
+#               keepalive_timeout 65;
+
+#               server {
+#                   listen 80;
+#                   server_name {{ duckdns_domain }}.duckdns.org;
+#                   return 301 https://$host$request_uri;
+#               }
+
+#               server {
+#                   listen 443 ssl;
+#                   server_name {{ duckdns_domain }}.duckdns.org;
+
+#                   ssl_certificate /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem;
+#                   ssl_certificate_key /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/privkey.pem;
+
+#                   location / {
+#                       proxy_pass http://localhost:{{ container_port }};
+#                       proxy_set_header Host $host;
+#                       proxy_set_header X-Real-IP $remote_addr;
+#                       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#                       proxy_set_header X-Forwarded-Proto $scheme;
+#                   }
+#               }
+#           }
+
+#     - name: Reload NGINX
+#       service:
+#         name: nginx
+#         state: restarted
+
+#     - name: Login to AWS ECR
+#       shell: >
+#         aws ecr get-login-password --region {{ region }} |
+#         docker login --username AWS --password-stdin {{ ecr_registry }}
+#       register: ecr_login
+#       changed_when: false
+#       failed_when: "'Login Succeeded' not in ecr_login.stdout"
+
+#     - name: Pull Docker image
+#       shell: docker pull "{{ ecr_repo_url }}:latest"
+#       register: docker_pull
+#       changed_when: "'Downloaded newer image' in docker_pull.stdout or 'Image is up to date' in docker_pull.stdout"
+
+#     - name: Stop running container if exists
+#       shell: docker stop {{ image_name }}
+#       ignore_errors: true
+
+#     - name: Remove container if exists
+#       shell: docker rm {{ image_name }}
+#       ignore_errors: true
+
+#     - name: Run Docker container
+#       shell: >
+#         docker run -d
+#         -p {{ host_port }}:{{ container_port }}
+#         --name {{ image_name }}
+#         "{{ ecr_repo_url }}:latest"
+
 - hosts: ec2
   become: true
   vars:
@@ -12,39 +192,33 @@
     email: ahmedhannan846@gmail.com
 
   tasks:
-    - name: Update all packages
-      yum:
-        name: "*"
-        state: latest
-
-    - name: Enable amazon-linux-extras for nginx
-      shell: |
-        amazon-linux-extras enable nginx1
-        yum clean metadata
-        yum install -y nginx
-      args:
-        creates: /etc/yum.repos.d/amzn2extra-nginx1.repo
+    - name: Update apt cache and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
 
     - name: Install required system packages
-      yum:
+      apt:
         name:
           - awscli
-          - docker
+          - docker.io
+          - nginx
           - curl
           - python3
           - python3-pip
+          - software-properties-common
         state: present
-        update_cache: yes
 
-    - name: Install Certbot via pip
-      pip:
+    - name: Install Certbot via snap (recommended for Ubuntu 22+)
+      snap:
         name: certbot
-        executable: pip3
+        classic: yes
 
-    - name: Install certbot-nginx plugin via pip
+    - name: Ensure pip is upgraded
       pip:
-        name: certbot-nginx
+        name: pip
         executable: pip3
+        state: latest
 
     - name: Start and enable Docker
       service:
@@ -52,9 +226,9 @@
         state: started
         enabled: true
 
-    - name: Add ec2-user to docker group
+    - name: Add ubuntu user to docker group
       user:
-        name: ec2-user
+        name: ubuntu
         groups: docker
         append: yes
 
@@ -71,7 +245,7 @@
         content: |
           #!/bin/bash
           curl -k "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&txt=$CERTBOT_VALIDATION"
-          sleep 10
+          sleep 20
 
     - name: Create DuckDNS DNS cleanup script
       copy:
@@ -98,57 +272,30 @@
 
     - name: Configure NGINX for HTTPS reverse proxy
       copy:
-        dest: /etc/nginx/nginx.conf
+        dest: /etc/nginx/sites-available/default
         content: |
-          user nginx;
-          worker_processes auto;
-          error_log /var/log/nginx/error.log;
-          pid /run/nginx.pid;
-
-          events {
-              worker_connections 1024;
+          server {
+              listen 80;
+              server_name {{ duckdns_domain }}.duckdns.org;
+              return 301 https://$host$request_uri;
           }
 
-          http {
-              include /etc/nginx/mime.types;
-              default_type application/octet-stream;
+          server {
+              listen 443 ssl;
+              server_name {{ duckdns_domain }}.duckdns.org;
 
-              log_format main '$remote_addr - $remote_user [$time_local] "$request" '
-                              '$status $body_bytes_sent "$http_referer" '
-                              '"$http_user_agent" "$http_x_forwarded_for"';
+              ssl_certificate /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/privkey.pem;
 
-              access_log /var/log/nginx/access.log main;
-
-              sendfile on;
-              keepalive_timeout 65;
-
-              server {
-                  listen 80;
-                  server_name {{ duckdns_domain }}.duckdns.org;
-                  return 301 https://$host$request_uri;
-              }
-
-              server {
-                  listen 443 ssl;
-                  server_name {{ duckdns_domain }}.duckdns.org;
-
-                  ssl_certificate /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/fullchain.pem;
-                  ssl_certificate_key /etc/letsencrypt/live/{{ duckdns_domain }}.duckdns.org/privkey.pem;
-
-                  location / {
-                      proxy_pass http://localhost:{{ container_port }};
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto $scheme;
-                  }
+              location / {
+                  proxy_pass http://localhost:{{ container_port }};
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
               }
           }
-
-    - name: Reload NGINX
-      service:
-        name: nginx
-        state: restarted
+      notify: Reload NGINX
 
     - name: Login to AWS ECR
       shell: >
@@ -177,3 +324,9 @@
         -p {{ host_port }}:{{ container_port }}
         --name {{ image_name }}
         "{{ ecr_repo_url }}:latest"
+
+  handlers:
+    - name: Reload NGINX
+      service:
+        name: nginx
+        state: restarted
