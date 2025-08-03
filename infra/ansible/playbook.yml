@@ -17,15 +17,17 @@
         name: "*"
         state: latest
 
-    - name: Enable NGINX via Amazon Linux Extras
-      shell: amazon-linux-extras enable nginx1
+    - name: Enable Amazon Linux Extras for nginx and epel
+      shell: |
+        amazon-linux-extras enable nginx1
+        amazon-linux-extras enable epel
+        yum clean metadata
       args:
         creates: /etc/yum.repos.d/amzn2extra-nginx1.repo
 
     - name: Install required packages
       yum:
         name:
-          - epel-release
           - awscli
           - docker
           - nginx
@@ -35,13 +37,19 @@
         state: present
         update_cache: yes
 
-    - name: Enable and start Docker
+    - name: Start and enable Docker
       service:
         name: docker
         state: started
         enabled: true
 
-    - name: Enable and start NGINX
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Start and enable NGINX
       service:
         name: nginx
         state: started
@@ -145,7 +153,7 @@
       shell: >
         docker pull "{{ ecr_repo_url }}:latest"
       register: docker_pull
-      changed_when: "'Downloaded newer image' in docker_pull.stdout"
+      changed_when: "'Downloaded newer image' in docker_pull.stdout or 'Image is up to date' in docker_pull.stdout"
 
     - name: Stop running container if exists
       shell: docker stop {{ image_name }}
