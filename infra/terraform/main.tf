@@ -2,8 +2,8 @@ provider "aws" {
   region = "ap-south-1"
 }
 
-resource "aws_key_pair" "jenkins_key" {
-  key_name   = "jenkins-key"
+resource "aws_key_pair" "your-key" {
+  key_name   = "your-keny-name"
   public_key = var.public_key
 }
 
@@ -34,9 +34,9 @@ resource "aws_security_group" "ec2_sg" {
 }
 
 resource "aws_instance" "app" {
-  ami                         = "ami-03f4878755434977f"
+  ami                         = "add-your-ami"
   instance_type               = "t2.micro"
-  key_name                    = aws_key_pair.jenkins_key.key_name
+  key_name                    = aws_key_pair.your-key.key_name
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = true
 
@@ -71,10 +71,3 @@ resource "aws_ecr_lifecycle_policy" "user_service_policy" {
   })
 }
 
-output "instance_ip" {
-  value = aws_instance.app.public_ip
-}
-
-output "ecr_repo_url" {
-  value = aws_ecr_repository.user_service.repository_url
-}
