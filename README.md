@@ -1,107 +1,102 @@
 ---
 
 ```markdown
-# 🛠️ DevOps Microservice Deployment with SSL (Node.js, AWS, Terraform, Ansible, DuckDNS)
+# Microservice Deployment with Terraform, Ansible, Docker, Nginx & SSL
 
-This project demonstrates a complete theoretical DevOps workflow that covers writing a simple Node.js microservice, provisioning infrastructure on AWS using Terraform, automating server configuration with Ansible, setting up a custom DuckDNS domain, securing the API with HTTPS via Certbot, and testing the end-to-end deployment.
+This repository demonstrates the complete lifecycle of deploying a microservice using modern DevOps tools and best practices.
 
 ---
 
-## 🔧 Step-by-Step Overview
+## 🔧 Tech Stack
 
-### 1. ✅ Created a Microservice
+- **Terraform**: Infrastructure provisioning on AWS
+- **Ansible**: Server configuration and deployment automation
+- **Docker**: Containerization of the microservice
+- **Nginx**: Reverse proxy for routing and SSL termination
+- **Let's Encrypt + DuckDNS**: Free SSL certificate setup using DNS challenge
+- **Node.js + Express**: Simple microservice API
 
-- Developed a Node.js microservice using Express.js.
+---
+
+## 📋 Project Workflow (Step-by-Step)
+
+### 1. Microservice Setup
+- Created a simple Express-based Node.js application.
+- Containerized the application using a `Dockerfile`.
+
+### 2. Infrastructure Provisioning using Terraform
+- Provisioned an EC2 instance on AWS.
+- Attached a security group allowing ports 22 (SSH), 80 (HTTP), and 443 (HTTPS).
+- Used key-based authentication for SSH access.
+
+### 3. Dynamic DNS with DuckDNS
+- Registered a domain (e.g., `zillas.duckdns.org`) via DuckDNS.
+- Pointed the DuckDNS domain to the EC2 public IP.
+
+### 4. Remote Configuration via Ansible
+- Connected to the EC2 server using Ansible inventory.
+- Installed required packages (Docker, Nginx, Certbot).
+- Pulled and ran the Docker image of the Node.js app.
+
+### 5. Nginx Reverse Proxy Configuration
+- Configured Nginx to forward requests to the Docker container.
+- Enabled access on port 443 with SSL certificates.
+
+### 6. SSL Certificate Setup with Let’s Encrypt
+- Installed Certbot and dependencies.
+- Used DuckDNS DNS challenge scripts to generate SSL certificates.
+- Certificates stored at `/etc/letsencrypt/live/<your-domain>`.
+
+---
+
+## 🌐 Access URL
+
+**🔗 https://zillas.duckdns.org/api**  
+Responds with a confirmation message: `API is working`
+
+---
+
+## 📁 Repository Structure
+
 ```
 
+├── microservice/              
+│   ├── Dockerfile
+│   └── index.js
+├── terraform/                 
+│   └── main.tf
+├── ansible/                    
+│   ├── inventory.ini
+│   └── playbook.yml
+└── README.md                  
 
-### 2. 🌐 Wrote Terraform Infrastructure Code
-
-- Used [Terraform](https://www.terraform.io/) to provision an EC2 instance on AWS.
-- Defined key infrastructure components:
-- AWS provider and region setup.
-- EC2 instance with a public IP.
-- Security group with:
-  - Port 22 open for SSH
-  - Port 443 open for HTTPS
-- Created and configured an SSH key pair for secure access.
-- Ran `terraform init` and `terraform apply` to deploy the infrastructure.
-
----
-
-### 3. 🔁 Set Up DNS with DuckDNS
-
-- Registered a free domain via [DuckDNS](https://www.duckdns.org/): `zillas.duckdns.org`.
-- Mapped the domain to the EC2 instance’s public IP.
-- Verified DNS resolution after propagation.
-
----
-
-### 4. 🤖 Wrote Ansible Playbook to Configure the EC2 Instance
-
-- Connected to the EC2 instance over SSH.
-- Installed required software:
-- Docker
-- Nginx
-- Pulled and ran the Node.js microservice Docker image.
-- Exposed the app internally (e.g., on port 3000).
-- Configured Nginx as a reverse proxy to forward HTTPS traffic to the internal API.
-
----
-
-### 5. 🔐 Automated SSL Certificate Setup with Certbot & DuckDNS
-
-- Manually installed Certbot and its dependencies.
-- Wrote custom DNS authentication scripts using the DuckDNS API.
-- Used Certbot with DNS-01 challenge to generate an SSL certificate for `zillas.duckdns.org`.
-- Configured Nginx to use the certificate to serve the API securely over HTTPS.
-
----
-
-### 6. 🧪 Tested the End-to-End Setup
-
-- Accessed the API at:  
-👉 `https://zillas.duckdns.org/api`
-
-- Troubleshot common issues:
-- `ERR_SSL_PROTOCOL_ERROR`
-- Misconfigured Nginx reverse proxy
-- Incorrect certificate path or permission
-- Docker container not listening on expected port
-
-- Verified that:
-- SSL certificate exists and is valid
-- Nginx serves HTTPS traffic
-- API responds correctly from the domain
-
----
-
-## 📦 Technologies Used
-
-- **Backend**: Node.js + Express  
-- **Infrastructure**: AWS EC2, Terraform  
-- **Automation**: Ansible  
-- **DNS**: DuckDNS  
-- **SSL**: Certbot with DNS challenge  
-- **Proxy**: Nginx  
-- **Containerization**: Docker  
-
----
-
-## 💡 Key Learning Outcomes
-
-- Infrastructure as Code (IaC) using Terraform  
-- Server configuration automation with Ansible  
-- Domain management with DuckDNS  
-- HTTPS setup with DNS-01 challenge via Certbot  
-- Secure and scalable deployment of microservices
-
----
-
-## 📬 Contact
-
-For any questions, feel free to open an issue or submit a pull request.  
-Happy shipping 🚀!
 ```
 
 ---
+
+## ✅ Outcomes
+
+- Infrastructure-as-code setup with repeatable provisioning
+- End-to-end automation of server configuration and deployment
+- Secure HTTPS access using free SSL certificates
+- Scalable and maintainable DevOps workflow
+
+---
+
+## 📌 Requirements
+
+- AWS account with key pair
+- Terraform CLI
+- Ansible CLI
+- Docker installed locally for testing
+- DuckDNS account (free)
+
+---
+
+## 📞 Contact
+
+For any questions or feedback, feel free to open an issue or contribute!
+
+---
+
+```
