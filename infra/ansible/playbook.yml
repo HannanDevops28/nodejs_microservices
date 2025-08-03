@@ -17,24 +17,26 @@
         name: "*"
         state: latest
 
-    - name: Enable amazon-linux-extras for nginx and epel
+    - name: Enable amazon-linux-extras for nginx
       shell: |
-        amazon-linux-extras enable nginx1 epel
+        amazon-linux-extras enable nginx1
         yum clean metadata
+        yum install -y nginx
+      args:
+        creates: /etc/yum.repos.d/amzn2extra-nginx1.repo
 
-    - name: Install required packages via yum
+    - name: Install required system packages
       yum:
         name:
           - awscli
           - docker
-          - nginx
           - curl
           - python3
           - python3-pip
         state: present
         update_cache: yes
 
-    - name: Install certbot via pip
+    - name: Install Certbot via pip
       pip:
         name: certbot
         executable: pip3
@@ -157,8 +159,7 @@
       failed_when: "'Login Succeeded' not in ecr_login.stdout"
 
     - name: Pull Docker image
-      shell: >
-        docker pull "{{ ecr_repo_url }}:latest"
+      shell: docker pull "{{ ecr_repo_url }}:latest"
       register: docker_pull
       changed_when: "'Downloaded newer image' in docker_pull.stdout or 'Image is up to date' in docker_pull.stdout"
 
